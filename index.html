@@ -32,7 +32,7 @@
             <h1 class="text-3xl font-extrabold text-white tracking-tight">Mi Informe de Predicación</h1>
         </header>
 
-        <!-- ========================================== -->
+                <!-- ========================================== -->
         <!-- PANTALLA 1: CONFIGURACIÓN INICIAL (PERFIL) -->
         <!-- ========================================== -->
         <main id="pantalla-configuracion" class="flex-1 overflow-y-auto p-6 flex flex-col justify-between space-y-6 hidden fade-in">
@@ -42,44 +42,42 @@
                         <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                     </div>
                     <h2 class="text-2xl font-bold text-gray-800">¡Bienvenido!</h2>
-                    <p id="subtitulo-config" class="text-lg text-gray-600 leading-relaxed">Ingresa la clave de tu congregación para cargar la lista de grupos.</p>
+                    <p id="subtitulo-config" class="text-lg text-gray-600 leading-relaxed">Ingresa la clave de tu grupo para cargar tu lista de nombres.</p>
                 </div>
 
-                <!-- PASO A: VERIFICACIÓN DE PIN (Oculta nombres y teléfonos al público) -->
-                <div id="bloque-pin" class="space-y-4 fade-in">
+                <!-- PASO A: INGRESO DE CLAVE (PIN) DEL GRUPO -->
+                <div id="bloque-pin" class="space-y-4">
                     <div class="space-y-2">
-                        <label for="input-pin" class="block text-xl font-bold text-gray-800 text-center">Clave de Acceso (PIN):</label>
-                        <input type="password" id="input-pin" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="••••" class="w-full text-center tracking-[0.4em] text-3xl p-5 bg-gray-50 border-2 border-gray-300 rounded-2xl focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-100 transition-all font-extrabold text-gray-900 shadow-sm">
+                        <label for="input-pin" class="block text-xl font-bold text-gray-800 text-center">Clave de tu Grupo (PIN):</label>
+                        <input
+                            type="password"
+                            id="input-pin"
+                            inputmode="numeric"
+                            autocomplete="off"
+                            placeholder="Ej: 482913"
+                            class="w-full text-center tracking-[0.25em] text-2xl sm:text-3xl p-5 bg-gray-50 border-2 border-gray-300 rounded-2xl focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-100 transition-all font-extrabold text-gray-800 shadow-sm"
+                        >
                     </div>
-
                     <p id="error-pin" class="text-red-600 font-bold text-base hidden text-center"></p>
-
-                    <button type="button" id="btn-verificar-pin" class="w-full py-5 text-2xl font-extrabold bg-[#2b6cb0] hover:bg-[#2c5282] text-white rounded-2xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-60">
+                    <button type="button" id="btn-verificar-pin" class="w-full py-5 text-2xl font-extrabold bg-[#2b6cb0] hover:bg-[#2c5282] text-white rounded-2xl shadow-lg transition-all active:scale-[0.98]">
                         Ingresar
                     </button>
                 </div>
 
-                <!-- PASO B: SELECCIÓN DE GRUPO, NOMBRE Y CONSENTIMIENTO (Visible tras PIN válido) -->
+                <!-- PASO B: SELECCIÓN DIRECTA DE NOMBRE (SIN ELEGIR GRUPO) -->
                 <div id="bloque-seleccion-perfil" class="space-y-6 hidden fade-in">
-                    <!-- Selector de Grupo -->
-                    <div class="space-y-3">
-                        <label for="select-grupo" class="block text-xl font-bold text-gray-800">1. Tu Grupo de Predicación:</label>
-                        <div class="relative">
-                            <select id="select-grupo" class="w-full appearance-none text-xl sm:text-2xl p-5 bg-gray-50 border-2 border-gray-300 rounded-2xl focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-100 transition-all font-semibold text-gray-800 shadow-sm">
-                                <option value="" disabled selected>Toca para elegir grupo...</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-gray-500">
-                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
-                            </div>
-                        </div>
+                    <!-- Tarjeta informativa del grupo detectado automáticamente -->
+                    <div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 text-center">
+                        <p id="badge-nombre-grupo" class="text-xl font-extrabold text-[#1a365d]">Grupo</p>
+                        <p id="badge-encargado-grupo" class="text-base font-medium text-blue-800">Encargado</p>
                     </div>
 
                     <!-- Selector de Nombre -->
                     <div class="space-y-3">
-                        <label for="select-nombre" class="block text-xl font-bold text-gray-800">2. Tu Nombre:</label>
+                        <label for="select-nombre" class="block text-xl font-bold text-gray-800">Elige tu Nombre:</label>
                         <div class="relative">
-                            <select id="select-nombre" disabled class="w-full appearance-none text-xl sm:text-2xl p-5 bg-gray-100 border-2 border-gray-300 rounded-2xl focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-100 transition-all font-semibold text-gray-800 shadow-sm disabled:opacity-60">
-                                <option value="" disabled selected>Primero elige tu grupo...</option>
+                            <select id="select-nombre" class="w-full appearance-none text-xl sm:text-2xl p-5 bg-gray-50 border-2 border-gray-300 rounded-2xl focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-100 transition-all font-semibold text-gray-800 shadow-sm">
+                                <option value="" disabled selected>Toca para elegir tu nombre...</option>
                             </select>
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-gray-500">
                                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
@@ -114,13 +112,14 @@
                 </div>
             </div>
 
-            <!-- Pie de página -->
+            <!-- Pie de página con aviso de uso y privacidad -->
             <footer class="pt-4 border-t border-gray-200 text-center">
                 <p class="text-xs text-gray-500 leading-relaxed">
                     <strong>Aviso de uso y privacidad:</strong> La información enviada se utiliza exclusivamente para el registro de informes mensuales y asuntos afines de la congregación. Esta aplicación no almacena tus informes ni envía datos a servidores externos.
                 </p>
             </footer>
         </main>
+
 
         <!-- ========================================== -->
         <!-- PANTALLA 2: FORMULARIO PRINCIPAL           -->

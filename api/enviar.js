@@ -12,8 +12,8 @@ function compararSeguro(valorA, valorB) {
     return crypto.timingSafeEqual(bufA, bufB);
 }
 
-function verificarTokenSesion(token, pinReal) {
-    if (typeof token !== 'string') return false;
+function verificarTokenGrupo(token, grupoId, pinGrupo) {
+    if (typeof token !== 'string' || !pinGrupo) return false;
     const partes = token.split('.');
     if (partes.length !== 2) return false;
 
@@ -21,8 +21,8 @@ function verificarTokenSesion(token, pinReal) {
     if (!/^\d+$/.test(emitido) || !/^[a-f0-9]{64}$/.test(firmaRecibida)) return false;
 
     const firmaEsperada = crypto
-        .createHmac('sha256', pinReal)
-        .update(`informeApp:v1:${emitido}`)
+        .createHmac('sha256', pinGrupo)
+        .update(`informeApp:v2:${grupoId}:${emitido}`)
         .digest('hex');
 
     return compararSeguro(firmaRecibida, firmaEsperada);
@@ -81,23 +81,9 @@ module.exports = async function handler(req, res) {
         return responderErrorHtml(res, 405, 'Acceso no permitido', 'Utiliza el botón de envío dentro de la aplicación.');
     }
 
-    const pinReal = process.env.CONGREGACION_PIN;
     const gruposRaw = process.env.GRUPOS_JSON;
-
-    if (!pinReal || !gruposRaw) {
+    if (!gruposRaw) {
         return responderErrorHtml(res, 500, 'Error de servidor', 'La configuración del servidor está incompleta.');
-    }
-
-    const body = req.body || {};
-    const token = typeof body.token === 'string' ? body.token.trim() : '';
-
-    if (!verificarTokenSesion(token, pinReal.trim())) {
-        return responderErrorHtml(
-            res,
-            401,
-            'Sesión vencida o clave actualizada',
-            'La clave de acceso de la congregación cambió. Vuelve a la app, toca "Cambiar usuario" e ingresa la clave nueva.'
-        );
     }
 
     let grupos;
@@ -108,16 +94,29 @@ module.exports = async function handler(req, res) {
         return responderErrorHtml(res, 500, 'Error de servidor', 'No se pudo leer la lista de grupos.');
     }
 
+    const body = req.body || {};
+    const token = typeof body.token === 'string' ? body.token.trim() : '';
     const grupoId = typeof body.grupoId === 'string' ? body.grupoId.trim() : '';
     const nombre = typeof body.nombre === 'string' ? body.nombre.trim() : '';
 
     const grupo = grupos.find(g => g.id === grupoId);
-    if (!grupo || !Array.isArray(grupo.hermanos) || !grupo.hermanos.includes(nombre)) {
+    const pinGrupo = typeof grupo?.pin === 'string' ? grupo.pin.trim() : '';
+
+    if (!grupo || !verificarTokenGrupo(token, grupo.id, pinGrupo)) {
+        return responderErrorHtml(
+            res,
+            401,
+            'Sesión vencida o clave actualizada',
+            'La clave de tu grupo fue actualizada. Vuelve a la app, toca "Cambiar usuario" e ingresa la clave nueva.'
+        );
+    }
+
+    if (!Array.isArray(grupo.hermanos) || !grupo.hermanos.includes(nombre)) {
         return responderErrorHtml(
             res,
             400,
             'Perfil no encontrado',
-            'Tu grupo o nombre fue actualizado en la lista. Toca "Cambiar usuario" en la app y vuelve a seleccionarte.'
+            'Tu nombre fue actualizado en la lista del grupo. Toca "Cambiar usuario" en la app y vuelve a seleccionarte.'
         );
     }
 
@@ -147,7 +146,6 @@ module.exports = async function handler(req, res) {
 
     const urlWhatsApp = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
 
-    // 303 See Other redirige el POST directamente a WhatsApp sin exponer el número en la app
     res.writeHead(303, { Location: urlWhatsApp });
     return res.end();
 };

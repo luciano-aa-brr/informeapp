@@ -8,15 +8,16 @@ if ('serviceWorker' in navigator) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Limpieza automática de versiones antiguas que almacenaban teléfonos en localStorage
+    // Limpieza automática de versiones anteriores en localStorage
     try {
+        localStorage.removeItem('perfilPublicadorV3');
         localStorage.removeItem('perfilPublicadorV2');
         localStorage.removeItem('perfilPublicador');
         localStorage.removeItem('nombrePublicador');
     } catch {}
 
-    // Estado temporal en RAM (se borra al guardar el perfil)
-    let gruposEnMemoria = [];
+    // Estado temporal en RAM (solo el grupo actual; se borra al guardar el perfil)
+    let grupoEnMemoria = null;
     let tokenEnMemoria = '';
     let ultimoInformeEnviado = null;
 
@@ -25,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pantallaPrincipal = document.getElementById('pantalla-principal');
     const contenedorBtnEnviar = document.getElementById('contenedor-btn-enviar');
 
-    // Referencias DOM - Configuración (PIN + Selección)
+    // Referencias DOM - Configuración (PIN + Selección directa de Nombre)
     const subtituloConfig = document.getElementById('subtitulo-config');
     const bloquePin = document.getElementById('bloque-pin');
     const inputPin = document.getElementById('input-pin');
@@ -33,7 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnVerificarPin = document.getElementById('btn-verificar-pin');
 
     const bloqueSeleccionPerfil = document.getElementById('bloque-seleccion-perfil');
-    const selectGrupo = document.getElementById('select-grupo');
+    const badgeNombreGrupo = document.getElementById('badge-nombre-grupo');
+    const badgeEncargadoGrupo = document.getElementById('badge-encargado-grupo');
     const selectNombre = document.getElementById('select-nombre');
     const checkConsentimiento = document.getElementById('check-consentimiento');
     const btnGuardarPerfil = document.getElementById('btn-guardar-perfil');
@@ -111,11 +113,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     cargarEstadoInicial();
 
-    // --- PASO A: VERIFICAR PIN EN EL SERVIDOR ---
+    // --- PASO A: VERIFICAR PIN DEL GRUPO EN EL SERVIDOR ---
     const verificarPinEnServidor = async () => {
         const pin = inputPin.value.trim();
         if (!pin) {
-            errorPin.textContent = 'Por favor, escribe la clave de acceso.';
+            errorPin.textContent = 'Por favor, escribe la clave de tu grupo.';
             errorPin.classList.remove('hidden');
             return;
         }
@@ -139,33 +141,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            if (respuesta.status === 429) {
+                errorPin.textContent = 'Demasiados intentos. Espera un minuto e intenta nuevamente.';
+                errorPin.classList.remove('hidden');
+                return;
+            }
+
             if (!respuesta.ok) {
                 throw new Error('Error del servidor');
             }
 
             const data = await respuesta.json();
-            if (!Array.isArray(data?.grupos) || data.grupos.length === 0 || !ModuloSeguridad.esTokenValido(data?.token)) {
+            if (!data?.grupo || !Array.isArray(data.grupo.hermanos) || !ModuloSeguridad.esTokenValido(data?.token)) {
                 throw new Error('Respuesta inválida');
             }
 
-            gruposEnMemoria = data.grupos;
+            grupoEnMemoria = data.grupo;
             tokenEnMemoria = data.token;
 
-            const opcionesGrupos = gruposEnMemoria.map(grupo => ({
-                valor: grupo.id,
-                etiqueta: `${grupo.nombreGrupo} (${grupo.encargado})`
+            badgeNombreGrupo.textContent = grupoEnMemoria.nombreGrupo;
+            badgeEncargadoGrupo.textContent = `Encargado: ${grupoEnMemoria.encargado}`;
+
+            const opcionesHermanos = grupoEnMemoria.hermanos.map(h => ({
+                valor: h,
+                etiqueta: h
             }));
 
             ModuloSeguridad.poblarSelectSeguro(
-                selectGrupo,
-                'Toca para elegir grupo...',
-                opcionesGrupos
+                selectNombre,
+                'Toca para elegir tu nombre...',
+                opcionesHermanos
             );
 
             inputPin.value = '';
             bloquePin.classList.add('hidden');
             bloqueSeleccionPerfil.classList.remove('hidden');
-            subtituloConfig.textContent = 'Elige tu grupo y tu nombre para dirigir tu informe al encargado correcto.';
+            subtituloConfig.textContent = 'Solo elige tu nombre de la lista para comenzar.';
         } catch {
             errorPin.textContent = 'No se pudo conectar. Revisa tu internet e intenta nuevamente.';
             errorPin.classList.remove('hidden');
@@ -183,29 +194,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- PASO B: CARGAR NOMBRES SEGÚN EL GRUPO ---
-    selectGrupo.addEventListener('change', () => {
-        const grupoEncontrado = gruposEnMemoria.find(g => g.id === selectGrupo.value);
-        if (grupoEncontrado && Array.isArray(grupoEncontrado.hermanos)) {
-            const opcionesHermanos = grupoEncontrado.hermanos.map(h => ({
-                valor: h,
-                etiqueta: h
-            }));
-            ModuloSeguridad.poblarSelectSeguro(
-                selectNombre,
-                'Toca para elegir tu nombre...',
-                opcionesHermanos
-            );
-            selectNombre.disabled = false;
-            selectNombre.classList.remove('bg-gray-100');
-            selectNombre.classList.add('bg-gray-50');
-        }
-    });
-
-    // --- GUARDAR PERFIL (SOLO DEL USUARIO ACTUAL, SIN TELÉFONO) ---
+    // --- PASO B: GUARDAR PERFIL (SOLO DEL USUARIO ACTUAL) ---
     btnGuardarPerfil.addEventListener('click', () => {
-        if (!selectGrupo.value || !selectNombre.value) {
-            errorConfiguracion.textContent = 'Debes elegir tu grupo y tu nombre para continuar.';
+        if (!selectNombre.value) {
+            errorConfiguracion.textContent = 'Debes elegir tu nombre para continuar.';
             errorConfiguracion.classList.remove('hidden');
             return;
         }
@@ -217,8 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const perfilValido = ModuloSeguridad.validarSeleccionContraServidor(
-            gruposEnMemoria,
-            selectGrupo.value,
+            grupoEnMemoria,
             selectNombre.value,
             tokenEnMemoria,
             checkConsentimiento.checked
@@ -235,11 +226,10 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem(ModuloSeguridad.CLAVE_STORAGE, JSON.stringify(perfilValido));
         } catch {}
 
-        // Limpiamos la lista completa de la memoria RAM por privacidad
-        gruposEnMemoria = [];
+        // Limpiamos la lista del grupo de la memoria RAM por privacidad
+        grupoEnMemoria = null;
         tokenEnMemoria = '';
-        ModuloSeguridad.poblarSelectSeguro(selectGrupo, 'Toca para elegir grupo...', []);
-        ModuloSeguridad.poblarSelectSeguro(selectNombre, 'Primero elige tu grupo...', []);
+        ModuloSeguridad.poblarSelectSeguro(selectNombre, 'Toca para elegir tu nombre...', []);
 
         cargarEstadoInicial();
     });
@@ -260,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem(ModuloSeguridad.CLAVE_STORAGE);
         } catch {}
 
-        gruposEnMemoria = [];
+        grupoEnMemoria = null;
         tokenEnMemoria = '';
         ultimoInformeEnviado = null;
         inputPin.value = '';
@@ -268,15 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
         errorConfiguracion.classList.add('hidden');
         checkConsentimiento.checked = false;
 
-        ModuloSeguridad.poblarSelectSeguro(selectGrupo, 'Toca para elegir grupo...', []);
-        ModuloSeguridad.poblarSelectSeguro(selectNombre, 'Primero elige tu grupo...', []);
-        selectNombre.disabled = true;
-        selectNombre.classList.remove('bg-gray-50');
-        selectNombre.classList.add('bg-gray-100');
+        ModuloSeguridad.poblarSelectSeguro(selectNombre, 'Toca para elegir tu nombre...', []);
 
         bloqueSeleccionPerfil.classList.add('hidden');
         bloquePin.classList.remove('hidden');
-        subtituloConfig.textContent = 'Ingresa la clave de tu congregación para cargar la lista de grupos.';
+        subtituloConfig.textContent = 'Ingresa la clave de tu grupo para cargar tu lista de nombres.';
 
         cargarEstadoInicial();
         modalCambioUsuario.classList.add('hidden');
@@ -330,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- ENVÍO SEGURO AL SERVIDOR (SIN EXPONER TELÉFONOS) ---
+    // --- ENVÍO SEGURO AL SERVIDOR ---
     const formatearMes = (valorMes) => {
         if (!ModuloSeguridad.esMesValido(valorMes)) return '-';
         const [year, month] = valorMes.split('-');
@@ -338,7 +324,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase());
     };
 
-    // Envía un formulario POST síncrono a /api/enviar (100% compatible con Safari iOS)
     const enviarViaServidorSeguro = (payload) => {
         const form = document.createElement('form');
         form.method = 'POST';
@@ -414,7 +399,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modalExito.classList.add('flex');
     });
 
-    // Botón de respaldo en el modal de éxito (reutiliza el envío seguro por servidor)
     linkWhatsappRespaldo.addEventListener('click', (e) => {
         e.preventDefault();
         if (ultimoInformeEnviado) {

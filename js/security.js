@@ -1,6 +1,6 @@
 // Módulo de ciberseguridad en cliente: Prevención de XSS, sanitización y validación estricta
 export const ModuloSeguridad = Object.freeze({
-    CLAVE_STORAGE: 'perfilPublicadorV3',
+    CLAVE_STORAGE: 'perfilPublicadorV4',
 
     // Valida formato del token firmado (timestamp.hmac_sha256)
     esTokenValido(token) {
@@ -25,22 +25,19 @@ export const ModuloSeguridad = Object.freeze({
         return typeof valorMes === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(valorMes);
     },
 
-    // Valida la selección actual contra los grupos recibidos (sin teléfonos)
-    validarSeleccionContraServidor(gruposServidor, grupoId, nombre, token, consentimientoAceptado) {
+    // Valida la selección contra el único grupo recibido del servidor (sin teléfonos)
+    validarSeleccionContraServidor(grupoServidor, nombre, token, consentimientoAceptado) {
         if (consentimientoAceptado !== true) return null;
-        if (!Array.isArray(gruposServidor)) return null;
-        if (!this.esTextoSeguro(grupoId) || !this.esTextoSeguro(nombre)) return null;
+        if (!grupoServidor || typeof grupoServidor !== 'object') return null;
+        if (!this.esTextoSeguro(grupoServidor.id) || !this.esTextoSeguro(nombre)) return null;
         if (!this.esTokenValido(token)) return null;
-
-        const grupo = gruposServidor.find(g => g.id === grupoId);
-        if (!grupo || !Array.isArray(grupo.hermanos)) return null;
-        if (!grupo.hermanos.includes(nombre)) return null;
+        if (!Array.isArray(grupoServidor.hermanos) || !grupoServidor.hermanos.includes(nombre)) return null;
 
         return {
-            grupoId: grupo.id,
+            grupoId: grupoServidor.id.trim(),
             nombre: nombre.trim(),
-            nombreGrupo: String(grupo.nombreGrupo).trim(),
-            encargado: String(grupo.encargado).trim(),
+            nombreGrupo: String(grupoServidor.nombreGrupo || '').trim(),
+            encargado: String(grupoServidor.encargado || '').trim(),
             token,
             consentimientoAceptado: true
         };
