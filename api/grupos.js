@@ -1,15 +1,22 @@
 const crypto = require('crypto');
 
-// Comparación segura contra ataques de tiempo (timing attacks)
-function compararPinSeguro(pinIngresado, pinReal) {
-    const bufA = Buffer.from(String(pinIngresado));
-    const bufB = Buffer.from(String(pinReal));
+function compararSeguro(valorA, valorB) {
+    const bufA = Buffer.from(String(valorA));
+    const bufB = Buffer.from(String(valorB));
     if (bufA.length !== bufB.length) return false;
     return crypto.timingSafeEqual(bufA, bufB);
 }
 
+function generarTokenSesion(pinReal) {
+    const emitido = Date.now().toString();
+    const firma = crypto
+        .createHmac('sha256', pinReal)
+        .update(`informeApp:v1:${emitido}`)
+        .digest('hex');
+    return `${emitido}.${firma}`;
+}
+
 module.exports = async function handler(req, res) {
-    // Cabeceras estrictas: nunca guardar esta respuesta en caché
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
@@ -36,8 +43,7 @@ module.exports = async function handler(req, res) {
 
     const pinIngresado = typeof body?.pin === 'string' ? body.pin.trim() : '';
 
-    if (!pinIngresado || !compararPinSeguro(pinIngresado, pinReal.trim())) {
-        // Pequeña pausa de 500ms para frenar intentos automáticos de fuerza bruta
+    if (!pinIngresado || !compararSeguro(pinIngresado, pinReal.trim())) {
         await new Promise(resolve => setTimeout(resolve, 500));
         return res.status(401).json({ error: 'Clave incorrecta.' });
     }
@@ -47,7 +53,17 @@ module.exports = async function handler(req, res) {
         if (!Array.isArray(grupos)) {
             throw new Error('Formato inválido');
         }
-        return res.status(200).json({ grupos });
+
+        // Lista blanca de campos: JAMÁS incluimos "telefono" en la respuesta al navegador
+        const gruposSinTelefonos = grupos.map(g => ({
+            id: String(g.id || '').trim(),
+            nombreGrupo: String(g.nombreGrupo || '').trim(),
+            encargado: String(g.encargado || '').trim(),
+            hermanos: Array.isArray(g.hermanos) ? g.hermanos.map(h => String(h).trim()) : []
+        }));
+
+        const token = generarTokenSesion(pinReal.trim());
+        return res.status(200).json({ grupos: gruposSinTelefonos, token });
     } catch {
         return res.status(500).json({ error: 'Error al leer la lista de grupos en el servidor.' });
     }

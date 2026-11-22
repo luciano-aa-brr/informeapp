@@ -8,8 +8,17 @@ if ('serviceWorker' in navigator) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Lista temporal en memoria RAM (solo existe mientras el usuario elige su perfil)
+    // Limpieza automática de versiones antiguas que almacenaban teléfonos en localStorage
+    try {
+        localStorage.removeItem('perfilPublicadorV2');
+        localStorage.removeItem('perfilPublicador');
+        localStorage.removeItem('nombrePublicador');
+    } catch {}
+
+    // Estado temporal en RAM (se borra al guardar el perfil)
     let gruposEnMemoria = [];
+    let tokenEnMemoria = '';
+    let ultimoInformeEnviado = null;
 
     // Referencias DOM - Pantallas
     const pantallaConfig = document.getElementById('pantalla-configuracion');
@@ -135,12 +144,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await respuesta.json();
-            if (!Array.isArray(data?.grupos) || data.grupos.length === 0) {
-                throw new Error('Lista vacía');
+            if (!Array.isArray(data?.grupos) || data.grupos.length === 0 || !ModuloSeguridad.esTokenValido(data?.token)) {
+                throw new Error('Respuesta inválida');
             }
 
-            // Guardamos temporalmente en RAM para poblar las listas
             gruposEnMemoria = data.grupos;
+            tokenEnMemoria = data.token;
 
             const opcionesGrupos = gruposEnMemoria.map(grupo => ({
                 valor: grupo.id,
@@ -153,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 opcionesGrupos
             );
 
-            // Limpiamos el PIN de la vista y mostramos la selección de grupo y nombre
             inputPin.value = '';
             bloquePin.classList.add('hidden');
             bloqueSeleccionPerfil.classList.remove('hidden');
@@ -194,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- GUARDAR PERFIL (SOLO DEL USUARIO ACTUAL) ---
+    // --- GUARDAR PERFIL (SOLO DEL USUARIO ACTUAL, SIN TELÉFONO) ---
     btnGuardarPerfil.addEventListener('click', () => {
         if (!selectGrupo.value || !selectNombre.value) {
             errorConfiguracion.textContent = 'Debes elegir tu grupo y tu nombre para continuar.';
@@ -212,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gruposEnMemoria,
             selectGrupo.value,
             selectNombre.value,
+            tokenEnMemoria,
             checkConsentimiento.checked
         );
 
@@ -228,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Limpiamos la lista completa de la memoria RAM por privacidad
         gruposEnMemoria = [];
+        tokenEnMemoria = '';
         ModuloSeguridad.poblarSelectSeguro(selectGrupo, 'Toca para elegir grupo...', []);
         ModuloSeguridad.poblarSelectSeguro(selectNombre, 'Primero elige tu grupo...', []);
 
@@ -248,11 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
     btnConfirmarCambio.addEventListener('click', () => {
         try {
             localStorage.removeItem(ModuloSeguridad.CLAVE_STORAGE);
-            localStorage.removeItem('perfilPublicador');
-            localStorage.removeItem('nombrePublicador');
         } catch {}
 
         gruposEnMemoria = [];
+        tokenEnMemoria = '';
+        ultimoInformeEnviado = null;
         inputPin.value = '';
         errorPin.classList.add('hidden');
         errorConfiguracion.classList.add('hidden');
@@ -320,12 +330,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- ENVÍO SEGURO A WHATSAPP ---
+    // --- ENVÍO SEGURO AL SERVIDOR (SIN EXPONER TELÉFONOS) ---
     const formatearMes = (valorMes) => {
         if (!ModuloSeguridad.esMesValido(valorMes)) return '-';
         const [year, month] = valorMes.split('-');
         const fecha = new Date(Number(year), Number(month) - 1);
         return fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase());
+    };
+
+    // Envía un formulario POST síncrono a /api/enviar (100% compatible con Safari iOS)
+    const enviarViaServidorSeguro = (payload) => {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/api/enviar';
+        form.target = '_blank';
+        form.rel = 'noopener noreferrer';
+        form.style.display = 'none';
+
+        Object.entries(payload).forEach(([clave, valor]) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = clave;
+            input.value = String(valor);
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
     };
 
     btnRevisar.addEventListener('click', () => {
@@ -358,42 +390,36 @@ document.addEventListener('DOMContentLoaded', () => {
         modalConfirmacion.classList.remove('flex');
     });
 
-    const construirUrlWhatsAppSegura = () => {
-        const perfil = obtenerPerfilSeguro();
-        if (!perfil || !ModuloSeguridad.esTelefonoValido(perfil.telefono)) return '#';
-
-        const mesLegible = formatearMes(inputMes.value);
-        const participoTexto = checkParticipo.checked ? 'Sí' : 'No';
-        const horasSeguras = ModuloSeguridad.sanitizarEntero(inputHoras.value, 0, 744);
-
-        let mensaje = `*Informe de Predicación*\n`;
-        mensaje += `------------------------\n`;
-        mensaje += `*Publicador:* ${perfil.nombre}\n`;
-        mensaje += `*Grupo:* ${perfil.nombreGrupo}\n`;
-        mensaje += `*Mes:* ${mesLegible}\n`;
-        mensaje += `*Participó en la predicación:* ${participoTexto}\n`;
-        mensaje += `*Cursos bíblicos:* ${cursosCount}\n`;
-
-        if (checkPrecursor.checked) {
-            mensaje += `*Precursor:* Sí\n`;
-            mensaje += `*Horas:* ${horasSeguras}\n`;
-        }
-
-        const textoCodificado = encodeURIComponent(mensaje);
-        return `https://wa.me/${perfil.telefono}?text=${textoCodificado}`;
-    };
-
     btnConfirmarEnviar.addEventListener('click', () => {
-        const urlWhatsApp = construirUrlWhatsAppSegura();
-        if (urlWhatsApp === '#') return;
+        const perfil = obtenerPerfilSeguro();
+        if (!perfil) return;
 
-        linkWhatsappRespaldo.href = urlWhatsApp;
-        window.open(urlWhatsApp, '_blank', 'noopener,noreferrer');
+        const payload = {
+            token: perfil.token,
+            grupoId: perfil.grupoId,
+            nombre: perfil.nombre,
+            mes: inputMes.value,
+            participo: checkParticipo.checked ? 'true' : 'false',
+            cursos: cursosCount,
+            precursor: checkPrecursor.checked ? 'true' : 'false',
+            horas: ModuloSeguridad.sanitizarEntero(inputHoras.value, 0, 744)
+        };
+
+        ultimoInformeEnviado = payload;
+        enviarViaServidorSeguro(payload);
 
         modalConfirmacion.classList.add('hidden');
         modalConfirmacion.classList.remove('flex');
         modalExito.classList.remove('hidden');
         modalExito.classList.add('flex');
+    });
+
+    // Botón de respaldo en el modal de éxito (reutiliza el envío seguro por servidor)
+    linkWhatsappRespaldo.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (ultimoInformeEnviado) {
+            enviarViaServidorSeguro(ultimoInformeEnviado);
+        }
     });
 
     btnCerrarExito.addEventListener('click', () => {
@@ -410,4 +436,3 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo(0, 0);
     });
 });
-

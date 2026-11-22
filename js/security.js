@@ -1,10 +1,10 @@
-// Módulo de ciberseguridad: Prevención de XSS, sanitización y validación estricta
+// Módulo de ciberseguridad en cliente: Prevención de XSS, sanitización y validación estricta
 export const ModuloSeguridad = Object.freeze({
-    CLAVE_STORAGE: 'perfilPublicadorV2',
+    CLAVE_STORAGE: 'perfilPublicadorV3',
 
-    // Valida teléfonos en formato internacional E.164 sin '+' (8 a 15 dígitos)
-    esTelefonoValido(telefono) {
-        return typeof telefono === 'string' && /^[1-9]\d{7,14}$/.test(telefono);
+    // Valida formato del token firmado (timestamp.hmac_sha256)
+    esTokenValido(token) {
+        return typeof token === 'string' && /^\d+\.[a-f0-9]{64}$/.test(token);
     },
 
     // Valida cadenas de texto no vacías y de largo acotado
@@ -25,28 +25,28 @@ export const ModuloSeguridad = Object.freeze({
         return typeof valorMes === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(valorMes);
     },
 
-    // Valida la selección actual contra los grupos recibidos desde el servidor
-    validarSeleccionContraServidor(gruposServidor, grupoId, nombre, consentimientoAceptado) {
+    // Valida la selección actual contra los grupos recibidos (sin teléfonos)
+    validarSeleccionContraServidor(gruposServidor, grupoId, nombre, token, consentimientoAceptado) {
         if (consentimientoAceptado !== true) return null;
         if (!Array.isArray(gruposServidor)) return null;
         if (!this.esTextoSeguro(grupoId) || !this.esTextoSeguro(nombre)) return null;
+        if (!this.esTokenValido(token)) return null;
 
         const grupo = gruposServidor.find(g => g.id === grupoId);
         if (!grupo || !Array.isArray(grupo.hermanos)) return null;
         if (!grupo.hermanos.includes(nombre)) return null;
-        if (!this.esTelefonoValido(grupo.telefono)) return null;
 
         return {
             grupoId: grupo.id,
             nombre: nombre.trim(),
             nombreGrupo: String(grupo.nombreGrupo).trim(),
             encargado: String(grupo.encargado).trim(),
-            telefono: grupo.telefono,
+            token,
             consentimientoAceptado: true
         };
     },
 
-    // Valida un perfil guardado en localStorage para evitar manipulaciones locales
+    // Valida un perfil guardado en localStorage (sin almacenar teléfonos)
     validarPerfilGuardado(perfil) {
         if (!perfil || typeof perfil !== 'object') return null;
         if (perfil.consentimientoAceptado !== true) return null;
@@ -54,14 +54,14 @@ export const ModuloSeguridad = Object.freeze({
         if (!this.esTextoSeguro(perfil.nombre)) return null;
         if (!this.esTextoSeguro(perfil.nombreGrupo)) return null;
         if (!this.esTextoSeguro(perfil.encargado)) return null;
-        if (!this.esTelefonoValido(perfil.telefono)) return null;
+        if (!this.esTokenValido(perfil.token)) return null;
 
         return {
             grupoId: perfil.grupoId.trim(),
             nombre: perfil.nombre.trim(),
             nombreGrupo: perfil.nombreGrupo.trim(),
             encargado: perfil.encargado.trim(),
-            telefono: perfil.telefono,
+            token: perfil.token,
             consentimientoAceptado: true
         };
     },
