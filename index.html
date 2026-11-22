@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Configuración PWA (Android, iOS y Tablets) -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a365d">
+
+    <!-- Seguridad y Privacidad -->
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+
+    <title>Mi Informe de Predicación</title>
+
+    <!-- Estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="text-gray-900 antialiased sm:py-8 flex justify-center min-h-screen">
+
+    <!-- Contenedor Principal (Adaptable a Celulares y Tablets) -->
+    <div class="w-full max-w-md md:max-w-lg bg-white sm:rounded-[2rem] sm:shadow-2xl overflow-hidden flex flex-col relative h-[100dvh] sm:h-auto sm:min-h-[820px] border-x sm:border border-gray-200">
+        
+        <!-- Cabecera Común -->
+        <header class="bg-[#1a365d] pt-10 pb-6 px-6 text-center rounded-b-2xl shadow-md z-10 flex-shrink-0">
+            <h1 class="text-3xl font-extrabold text-white tracking-tight">Mi Informe de Predicación</h1>
+        </header>
+
+        <!-- ========================================== -->
+        <!-- PANTALLA 1: CONFIGURACIÓN INICIAL (PERFIL) -->
+        <!-- ========================================== -->
+        <main id="pantalla-configuracion" class="flex-1 overflow-y-auto p-6 flex flex-col justify-between space-y-6 hidden fade-in">
+            <div class="space-y-6 my-auto">
+                <div class="text-center space-y-3">
+                    <div class="inline-block p-4 bg-blue-50 rounded-full text-blue-800 mb-1">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800">¡Bienvenido!</h2>
+                    <p id="subtitulo-config" class="text-lg text-gray-600 leading-relaxed">Ingresa la clave de tu congregación para cargar la lista de grupos.</p>
+                </div>
+
+                <!-- PASO A: VERIFICACIÓN DE PIN (Oculta nombres y teléfonos al público) -->
+                <div id="bloque-pin" class="space-y-4 fade-in">
+                    <div class="space-y-2">
+                        <label for="input-pin" class="block text-xl font-bold text-gray-800 text-center">Clave de Acceso (PIN):</label>
+                        <input type="password" id="input-pin" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="••••" class="w-full text-center tracking-[0.4em] text-3xl p-5 bg-gray-50 border-2 border-gray-300 rounded-2xl focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-100 transition-all font-extrabold text-gray-900 shadow-sm">
+                    </div>
+
+                    <p id="error-pin" class="text-red-600 font-bold text-base hidden text-center"></p>
+
+                    <button type="button" id="btn-verificar-pin" class="w-full py-5 text-2xl font-extrabold bg-[#2b6cb0] hover:bg-[#2c5282] text-white rounded-2xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-60">
+                        Ingresar
+                    </button>
+                </div>
+
+                <!-- PASO B: SELECCIÓN DE GRUPO, NOMBRE Y CONSENTIMIENTO (Visible tras PIN válido) -->
+                <div id="bloque-seleccion-perfil" class="space-y-6 hidden fade-in">
+                    <!-- Selector de Grupo -->
+                    <div class="space-y-3">
+                        <label for="select-grupo" class="block text-xl font-bold text-gray-800">1. Tu Grupo de Predicación:</label>
+                        <div class="relative">
+                            <select id="select-grupo" class="w-full appearance-none text-xl sm:text-2xl p-5 bg-gray-50 border-2 border-gray-300 rounded-2xl focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-100 transition-all font-semibold text-gray-800 shadow-sm">
+                                <option value="" disabled selected>Toca para elegir grupo...</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-gray-500">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selector de Nombre -->
+                    <div class="space-y-3">
+                        <label for="select-nombre" class="block text-xl font-bold text-gray-800">2. Tu Nombre:</label>
+                        <div class="relative">
+                            <select id="select-nombre" disabled class="w-full appearance-none text-xl sm:text-2xl p-5 bg-gray-100 border-2 border-gray-300 rounded-2xl focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-100 transition-all font-semibold text-gray-800 shadow-sm disabled:opacity-60">
+                                <option value="" disabled selected>Primero elige tu grupo...</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-gray-500">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Casilla de Consentimiento Obligatorio -->
+                    <div class="space-y-2 pt-2">
+                        <label for="check-consentimiento" class="flex items-start gap-4 p-4 border-2 border-blue-200 rounded-2xl bg-blue-50/60 active:bg-blue-50 transition-colors cursor-pointer select-none">
+                            <div class="relative flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <input type="checkbox" id="check-consentimiento" class="peer appearance-none w-8 h-8 border-2 border-blue-400 rounded-lg bg-white checked:bg-[#2b6cb0] checked:border-[#2b6cb0] transition-all">
+                                <svg class="absolute w-5 h-5 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <span class="text-base text-gray-800 leading-snug">
+                                <strong>Consentimiento:</strong> Acepto voluntariamente enviar mi información para ser utilizada en los informes mensuales de predicación y asuntos afines de la congregación.
+                            </span>
+                        </label>
+                        <p id="error-configuracion" class="text-red-600 font-bold text-base hidden text-center pt-1"></p>
+                    </div>
+
+                    <button type="button" id="btn-guardar-perfil" class="w-full py-5 text-2xl font-extrabold bg-[#2b6cb0] hover:bg-[#2c5282] text-white rounded-2xl shadow-lg transition-all active:scale-[0.98]">
+                        Continuar
+                    </button>
+                </div>
+
+                <!-- Botón discreto de ayuda para instalar como App (PWA) -->
+                <div class="text-center">
+                    <button type="button" id="btn-abrir-instalar" class="text-sm font-semibold text-[#2b6cb0] underline py-2 px-4 rounded-xl active:bg-blue-50 transition-colors">
+                        ¿Cómo instalar esta app en mi celular?
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pie de página -->
+            <footer class="pt-4 border-t border-gray-200 text-center">
+                <p class="text-xs text-gray-500 leading-relaxed">
+                    <strong>Aviso de uso y privacidad:</strong> La información enviada se utiliza exclusivamente para el registro de informes mensuales y asuntos afines de la congregación. Esta aplicación no almacena tus informes ni envía datos a servidores externos.
+                </p>
+            </footer>
+        </main>
+
+        <!-- ========================================== -->
+        <!-- PANTALLA 2: FORMULARIO PRINCIPAL           -->
+        <!-- ========================================== -->
+        <main id="pantalla-principal" class="flex-1 overflow-y-auto p-6 pb-32 space-y-8 hidden fade-in">
+            
+            <!-- Saludo, Grupo y Cambiar Usuario -->
+            <div class="flex justify-between items-center bg-blue-50 p-4 rounded-2xl border border-blue-100 gap-2">
+                <div class="min-w-0">
+                    <span id="saludo-nombre" class="block text-xl font-bold text-[#2b6cb0] truncate">Hola, Nombre</span>
+                    <span id="saludo-grupo" class="block text-sm font-medium text-gray-600 truncate">Grupo • Encargado</span>
+                </div>
+                <button type="button" id="btn-cambiar-usuario" class="text-sm font-semibold text-gray-500 underline py-2 px-3 active:bg-blue-100 rounded-lg whitespace-nowrap flex-shrink-0">
+                    Cambiar usuario
+                </button>
+            </div>
+
+            <!-- Mes -->
+            <div class="space-y-3">
+                <label for="mes" class="block text-xl font-bold text-gray-800">Mes a informar</label>
+                <input type="month" id="mes" class="w-full text-2xl p-5 bg-white border-2 border-gray-300 rounded-2xl focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-100 shadow-sm font-semibold text-gray-800">
+            </div>
+
+            <!-- Participación -->
+            <div class="space-y-3 pt-4 border-t border-gray-200">
+                <label class="flex items-center gap-4 p-5 border-2 border-gray-300 rounded-2xl bg-white active:bg-gray-50 transition-colors cursor-pointer select-none shadow-sm">
+                    <div class="relative flex items-center justify-center flex-shrink-0">
+                        <input type="checkbox" id="check-participo" checked class="peer appearance-none w-10 h-10 border-2 border-gray-400 rounded-lg checked:bg-[#2b6cb0] checked:border-[#2b6cb0] transition-all">
+                        <svg class="absolute w-6 h-6 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <span class="text-xl font-bold text-gray-800 leading-tight">Participé en la predicación este mes</span>
+                </label>
+            </div>
+
+            <!-- Cursos Bíblicos -->
+            <div class="space-y-3 pt-4 border-t border-gray-200">
+                <label class="block text-xl font-bold text-gray-800 text-center">Cursos Bíblicos</label>
+                <div class="flex items-center justify-between bg-white p-2 border-2 border-gray-200 rounded-[2rem] shadow-sm max-w-[300px] mx-auto">
+                    <button type="button" id="btn-menos-cursos" class="w-16 h-16 flex items-center justify-center bg-gray-100 text-4xl font-bold rounded-2xl text-gray-400 active:bg-gray-200 transition-all select-none">&minus;</button>
+                    <span id="display-cursos" class="text-4xl font-extrabold text-gray-900 w-16 text-center select-none">0</span>
+                    <button type="button" id="btn-mas-cursos" class="w-16 h-16 flex items-center justify-center bg-blue-100 text-[#2b6cb0] text-4xl font-bold rounded-2xl active:bg-blue-200 transition-all select-none">+</button>
+                </div>
+            </div>
+
+            <!-- Precursor -->
+            <div class="space-y-4 pt-4 border-t border-gray-200">
+                <label class="flex items-center gap-4 p-5 border-2 border-gray-300 rounded-2xl bg-white active:bg-gray-50 transition-colors cursor-pointer select-none shadow-sm">
+                    <div class="relative flex items-center justify-center flex-shrink-0">
+                        <input type="checkbox" id="check-precursor" class="peer appearance-none w-10 h-10 border-2 border-gray-400 rounded-lg checked:bg-[#2b6cb0] checked:border-[#2b6cb0] transition-all">
+                        <svg class="absolute w-6 h-6 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <span class="text-xl font-bold text-gray-800">Soy Precursor <span class="text-gray-500 font-normal text-lg block">(Regular o Auxiliar)</span></span>
+                </label>
+
+                <!-- Horas -->
+                <div id="seccion-horas" class="hidden flex-col gap-3 p-5 bg-blue-50 rounded-2xl border-2 border-blue-100 mt-4 fade-in">
+                    <label class="block text-xl font-bold text-gray-900 text-center">Horas de Predicación</label>
+                    <div class="flex items-center justify-between bg-white p-2 border-2 border-gray-200 rounded-[2rem] shadow-sm">
+                        <button type="button" id="btn-menos-horas" class="w-16 h-16 flex items-center justify-center bg-gray-100 text-4xl font-bold rounded-2xl text-gray-400 active:bg-gray-200 transition-all select-none">&minus;</button>
+                        <input type="number" id="input-horas" value="0" min="0" inputmode="numeric" class="text-4xl font-extrabold text-gray-900 w-24 text-center bg-transparent border-none focus:outline-none focus:ring-0 p-0 m-0 select-all">
+                        <button type="button" id="btn-mas-horas" class="w-16 h-16 flex items-center justify-center bg-blue-100 text-[#2b6cb0] text-4xl font-bold rounded-2xl active:bg-blue-200 transition-all select-none">+</button>
+                    </div>
+                    <p class="text-center text-sm text-gray-600 font-medium">Toca el número para escribirlo</p>
+                </div>
+            </div>
+
+            <!-- Pie de página -->
+            <footer class="pt-6 border-t border-gray-200 text-center">
+                <p class="text-xs text-gray-500 leading-relaxed">
+                    Al enviar tu informe, autorizas el uso de esta información para el registro de informes mensuales y otros asuntos afines de la congregación. Esta aplicación no guarda copias de tus informes.
+                </p>
+            </footer>
+        </main>
+
+        <!-- Botón Fijo Abajo -->
+        <div id="contenedor-btn-enviar" class="absolute bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] hidden z-20">
+            <button type="button" id="btn-revisar" class="w-full py-5 text-2xl font-extrabold bg-[#2b6cb0] hover:bg-[#2c5282] text-white rounded-2xl shadow-lg transition-all active:scale-[0.98]">
+                Revisar y Enviar
+            </button>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL DE CONFIRMACIÓN                      -->
+        <!-- ========================================== -->
+        <div id="modal-confirmacion" class="absolute inset-0 bg-gray-900 bg-opacity-50 z-40 hidden items-center justify-center p-4 fade-in backdrop-blur-sm">
+            <div class="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-6 flex flex-col">
+                <h2 class="text-2xl font-extrabold text-gray-900 mb-4 text-center border-b pb-4">Resumen del Informe</h2>
+                
+                <div class="space-y-3 mb-6 text-lg">
+                    <div class="flex justify-between gap-2">
+                        <span class="text-gray-600">Publicador:</span>
+                        <strong id="res-nombre" class="text-gray-900 text-right truncate"></strong>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <span class="text-gray-600">Enviar a:</span>
+                        <strong id="res-encargado" class="text-blue-800 text-right truncate"></strong>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <span class="text-gray-600">Mes:</span>
+                        <strong id="res-mes" class="text-gray-900"></strong>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <span class="text-gray-600">Participó:</span>
+                        <strong id="res-participo" class="text-gray-900"></strong>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <span class="text-gray-600">Cursos:</span>
+                        <strong id="res-cursos" class="text-gray-900"></strong>
+                    </div>
+                    <div id="res-horas-container" class="flex justify-between gap-2 hidden">
+                        <span class="text-gray-600">Horas:</span>
+                        <strong id="res-horas" class="text-gray-900"></strong>
+                    </div>
+                </div>
+
+                <div class="space-y-3 mt-auto">
+                    <button type="button" id="btn-confirmar-enviar" class="w-full py-4 text-xl font-bold bg-[#25D366] hover:bg-[#1ebe5d] text-white rounded-2xl shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2">
+                        <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm.029 18.88c-1.161 0-2.305-.292-3.318-.844l-3.677.964.984-3.595c-.607-1.052-.927-2.246-.926-3.468.001-3.825 3.113-6.937 6.937-6.937 1.856.001 3.598.723 4.907 2.034 1.31 1.311 2.031 3.054 2.03 4.908-.001 3.825-3.113 6.938-6.937 6.938z"/></svg>
+                        Enviar por WhatsApp
+                    </button>
+                    <button type="button" id="btn-cancelar" class="w-full py-4 text-xl font-bold bg-white text-gray-600 border-2 border-gray-200 rounded-2xl active:bg-gray-50 transition-colors">
+                        Corregir
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL DE ÉXITO                             -->
+        <!-- ========================================== -->
+        <div id="modal-exito" class="absolute inset-0 bg-white z-50 hidden flex-col items-center justify-center p-8 text-center fade-in">
+            <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
+                <svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 class="text-3xl font-extrabold text-gray-900 mb-2">¡Casi listo!</h2>
+            <p class="text-lg text-gray-600 mb-8 leading-relaxed">Se abrió WhatsApp con tu informe preparado. Solo recuerda presionar el botón de <strong>Enviar</strong> dentro de WhatsApp.</p>
+            
+            <div class="w-full space-y-3">
+                <a id="link-whatsapp-respaldo" href="#" target="_blank" rel="noopener noreferrer" class="block w-full py-4 text-xl font-bold bg-[#25D366] text-white rounded-2xl shadow-md active:scale-95 transition-transform">
+                    Abrir WhatsApp de nuevo
+                </a>
+                <button type="button" id="btn-cerrar-exito" class="w-full py-4 text-xl font-bold bg-gray-100 text-gray-800 rounded-2xl active:bg-gray-200 transition-colors">
+                    Volver al inicio
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL DE AYUDA PARA INSTALAR (PWA)         -->
+        <!-- ========================================== -->
+        <div id="modal-instalar" class="absolute inset-0 bg-gray-900 bg-opacity-50 z-50 hidden items-center justify-center p-4 fade-in backdrop-blur-sm">
+            <div class="bg-white w-full max-w-sm max-h-[85dvh] rounded-[2rem] shadow-2xl p-6 flex flex-col">
+                <h2 class="text-2xl font-extrabold text-gray-900 text-center pb-3 border-b border-gray-100 flex-shrink-0">
+                    Instalar en tu celular
+                </h2>
+
+                <!-- Contenido desplazable para todos los navegadores -->
+                <div class="overflow-y-auto space-y-3 py-4 text-base text-gray-700 pr-1">
+                    
+                    <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                        <p class="font-bold text-[#1a365d] mb-1">Android (Chrome, Brave u Opera):</p>
+                        <p class="leading-snug">Toca los <strong>3 puntitos (⋮)</strong> (arriba o abajo a la derecha) y elige <strong>"Instalar aplicación"</strong> o <strong>"Agregar a la pantalla principal"</strong>.</p>
+                    </div>
+
+                    <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                        <p class="font-bold text-indigo-900 mb-1">Celulares Samsung (Samsung Internet):</p>
+                        <p class="leading-snug">Toca las <strong>3 rayitas (≡)</strong> abajo a la derecha, elige <strong>"Añadir página a"</strong> y luego <strong>"Pantalla de inicio"</strong>.</p>
+                    </div>
+
+                    <div class="bg-sky-50 p-4 rounded-2xl border border-sky-100">
+                        <p class="font-bold text-sky-900 mb-1">Microsoft Edge (Android):</p>
+                        <p class="leading-snug">Toca las <strong>3 rayitas (≡)</strong> abajo a la derecha y selecciona <strong>"Agregar al teléfono"</strong>.</p>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                        <p class="font-bold text-gray-900 mb-1">iPhone / iPad (Safari y otros):</p>
+                        <p class="leading-snug">Toca el botón <strong>Compartir</strong> (cuadrado con flecha hacia arriba ↑) y elige <strong>"Agregar a inicio"</strong>. <em>Si usas Chrome, Edge o Brave en iPhone, el botón Compartir está arriba a la derecha.</em></p>
+                    </div>
+
+                    <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                        <p class="font-bold text-emerald-900 mb-1">En computador (Chrome, Edge o Brave):</p>
+                        <p class="leading-snug">Haz clic en el ícono de <strong>Instalar</strong> (una pequeña pantalla con flecha hacia abajo) al lado derecho de la barra de dirección web.</p>
+                    </div>
+
+                </div>
+
+                <div class="pt-3 border-t border-gray-100 flex-shrink-0">
+                    <button type="button" id="btn-cerrar-instalar" class="w-full py-4 text-xl font-bold bg-[#2b6cb0] text-white rounded-2xl shadow-md active:scale-95 transition-transform">
+                        Entendido
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL DE CAMBIO DE USUARIO                 -->
+        <!-- ========================================== -->
+        <div id="modal-cambio-usuario" class="absolute inset-0 bg-gray-900 bg-opacity-50 z-50 hidden items-center justify-center p-4 fade-in backdrop-blur-sm">
+            <div class="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-6 flex flex-col text-center">
+                <div class="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <h2 class="text-2xl font-extrabold text-gray-900 mb-2">¿Cambiar de usuario?</h2>
+                <p class="text-gray-600 mb-6 text-sm">Se borrará tu perfil de este teléfono y tendrás que volver a ingresar la clave y seleccionarlo la próxima vez.</p>
+                
+                <div class="flex gap-3">
+                    <button type="button" id="btn-cancelar-cambio" class="flex-1 py-3 text-lg font-bold bg-white text-gray-600 border-2 border-gray-200 rounded-2xl active:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="button" id="btn-confirmar-cambio" class="flex-1 py-3 text-lg font-bold bg-yellow-500 text-white rounded-2xl shadow-md active:scale-95 transition-transform">
+                        Sí, cambiar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Punto de entrada modular JavaScript -->
+    <script type="module" src="/js/app.js"></script>
+</body>
+</html>
